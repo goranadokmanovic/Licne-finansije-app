@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="UTF-8">
+  <title>Lične finansije - Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="app-header">
+      <h1>Lične finansije</h1>
+      <p>Praćenje prihoda i rashoda na dnevnom, mesečnom i godišnjem nivou</p>
+    </header>
+
+    <section class="card">
+      <h2>Novi unos</h2>
+      <form id="transaction-form">
+        <div class="form-row">
+          <label for="date">Datum</label>
+          <input type="date" id="date" required>
+        </div>
+        <div class="form-row">
+          <label for="description">Opis</label>
+          <input type="text" id="description" placeholder="npr. Plata, Kafa, Kirija" required>
+        </div>
+        <div class="form-row">
+          <label for="amount">Iznos</label>
+          <input type="number" step="0.01" id="amount" placeholder="npr. 1200.50" required>
+        </div>
+        <div class="form-row">
+          <label for="type">Tip</label>
+          <select id="type" required>
+            <option value="income">Prihod</option>
+            <option value="expense">Rashod</option>
+          </select>
+        </div>
+        <button type="submit" class="btn-primary">Sačuvaj unos</button>
+      </form>
+    </section>
+
+    <section class="grid">
+      <div class="card">
+        <h2>Dnevni pregled</h2>
+        <div class="summary-row">
+          <span>Prihodi danas:</span>
+          <span id="daily-income">0</span>
+        </div>
+        <div class="summary-row">
+          <span>Rashodi danas:</span>
+          <span id="daily-expense">0</span>
+        </div>
+        <div class="summary-row total">
+          <span>Saldo danas:</span>
+          <span id="daily-balance">0</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Mesečni pregled</h2>
+        <div class="summary-row">
+          <span>Prihodi ovaj mesec:</span>
+          <span id="monthly-income">0</span>
+        </div>
+        <div class="summary-row">
+          <span>Rashodi ovaj mesec:</span>
+          <span id="monthly-expense">0</span>
+        </div>
+        <div class="summary-row total">
+          <span>Saldo ovaj mesec:</span>
+          <span id="monthly-balance">0</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Godišnji pregled</h2>
+        <div class="summary-row">
+          <span>Prihodi ove godine:</span>
+          <span id="yearly-income">0</span>
+        </div>
+        <div class="summary-row">
+          <span>Rashodi ove godine:</span>
+          <span id="yearly-expense">0</span>
+        </div>
+        <div class="summary-row total">
+          <span>Saldo ove godine:</span>
+          <span id="yearly-balance">0</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="transactions-header">
+        <h2>Svi unosi</h2>
+        <button id="clear-all" class="btn-danger">Obriši sve</button>
+      </div>
+      <table class="transactions-table">
+        <thead>
+          <tr>
+            <th>Datum</th>
+            <th>Opis</th>
+            <th>Tip</th>
+            <th>Iznos</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="transactions-body">
+        </tbody>
+      </table>
+    </section>
+
+    <footer class="app-footer">
+      <p>Podaci se čuvaju lokalno u tvom pregledaču (LocalStorage).</p>
+    </footer>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
