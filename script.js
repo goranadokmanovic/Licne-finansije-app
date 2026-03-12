@@ -216,7 +216,7 @@ function recalcSummaries(transactions) {
   const yearlyLabel = document.getElementById("yearly-label");
 
   if (dailyLabel) {
-    dailyLabel.textContent = `Saldo za dan: ${refDay.toLocaleDateString("sr-RS")}`;
+    dailyLabel.textContent = refDay.toLocaleDateString("sr-RS");
   }
 
   if (monthlyLabel) {
@@ -235,11 +235,11 @@ function recalcSummaries(transactions) {
       "decembar",
     ];
     const monthText = `${monthNames[refMonth.getMonth()]} ${refMonth.getFullYear()}.`;
-    monthlyLabel.textContent = `Saldo za mesec: ${monthText}`;
+    monthlyLabel.textContent = monthText;
   }
 
   if (yearlyLabel) {
-    yearlyLabel.textContent = `Saldo za godinu: ${refYear.getFullYear()}.`;
+    yearlyLabel.textContent = `${refYear.getFullYear()}.`;
   }
 
   // daily
@@ -382,6 +382,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const newDaySel = document.getElementById("new-date-day");
   const newMonthSel = document.getElementById("new-date-month");
   const newYearSel = document.getElementById("new-date-year");
+  const dailyExportBtn = document.getElementById("daily-export");
+  const monthlyExportBtn = document.getElementById("monthly-export");
+  const yearlyExportBtn = document.getElementById("yearly-export");
 
   const today = new Date();
 
@@ -527,13 +530,40 @@ document.addEventListener("DOMContentLoaded", () => {
         alert("Nema podataka za izvoz.");
         return;
       }
-      const blob = new Blob([JSON.stringify(transactions, null, 2)], {
-        type: "application/json",
+
+      const header = [
+        "Datum",
+        "Opis",
+        "Tip",
+        "Iznos",
+        "Valuta",
+      ];
+
+      const rows = transactions.map((t) => {
+        const d = new Date(t.date).toLocaleDateString("sr-RS");
+        const desc = (t.description || "").replace(/"/g, '""');
+        const type = t.type === "income" ? "Prihod" : "Rashod";
+        const amount = String(t.amount ?? "");
+        const currency = t.currency && CURRENCY_SETTINGS[t.currency] ? t.currency : "RSD";
+        return [d, desc, type, amount, currency];
+      });
+
+      const csvLines = [
+        header.join(";"),
+        ...rows.map((cols) =>
+          cols
+            .map((c) => `"${String(c)}"`)
+            .join(";")
+        ),
+      ];
+
+      const blob = new Blob([csvLines.join("\r\n")], {
+        type: "text/csv;charset=utf-8;",
       });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "licne-finansije-export.json";
+      a.download = "licne-finansije-svi-unosi.csv";
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -548,31 +578,85 @@ document.addEventListener("DOMContentLoaded", () => {
       const reader = new FileReader();
       reader.onload = () => {
         try {
-          const parsed = JSON.parse(reader.result);
-          if (!Array.isArray(parsed)) throw new Error("Not array");
-          const cleaned = parsed
-            .map((t) => ({
-              id:
-                t.id ||
-                (crypto.randomUUID
-                  ? crypto.randomUUID()
-                  : String(Date.now() + Math.random())),
-              date: t.date,
-              description: t.description,
-              amount: Number(t.amount),
-              type: t.type === "expense" ? "expense" : "income",
-              currency:
-                t.currency && CURRENCY_SETTINGS[t.currency]
-                  ? t.currency
-                  : "RSD",
-            }))
-            .filter(
-              (t) =>
-                t.date &&
-                t.description &&
-                Number.isFinite(t.amount) &&
-                (t.type === "income" || t.type === "expense")
-            );
+          const text = String(reader.result || "");
+          let cleaned = [];
+
+          if (file.name.toLowerCase().endsWith(".csv")) {
+            const lines = text
+              .split(/\r?\n/)
+              .map((l) => l.trim())
+              .filter((l) => l.length > 0);
+            if (!lines.length) throw new Error("Empty CSV");
+
+            const header = lines[0].split(";").map((h) => h.replace(/^"|"$/g, "").trim().toLowerCase());
+            const idxDatum = header.indexOf("datum");
+            const idxOpis = header.indexOf("opis");
+            const idxTip = header.indexOf("tip");
+            const idxIznos = header.indexOf("iznos");
+            const idxValuta = header.indexOf("valuta");
+
+            if (idxDatum === -1 || idxOpis === -1 || idxTip === -1 || idxIznos === -1 || idxValuta === -1) {
+              throw new Error("CSV header mismatch");
+            }
+
+            cleaned = lines.slice(1).map((line) => {
+              const cols = line
+                .split(";")
+                .map((c) => c.replace(/^"|"$/g, ""));
+
+              const rawDate = cols[idxDatum] || "";
+              const parsedDate = rawDate ? new Date(rawDate) : null;
+              const isoDate = parsedDate && !isNaN(parsedDate.getTime())
+                ? parsedDate.toISOString().slice(0, 10)
+                : "";
+
+              const opis = cols[idxOpis] || "";
+              const tipRaw = (cols[idxTip] || "").toLowerCase();
+              const type = tipRaw.includes("rashod") ? "expense" : "income";
+              const amount = Number(cols[idxIznos]?.replace(",", "."));
+              const curRaw = (cols[idxValuta] || "RSD").toUpperCase().trim();
+              const currency = CURRENCY_SETTINGS[curRaw] ? curRaw : "RSD";
+
+              return {
+                id:
+                  crypto.randomUUID
+                    ? crypto.randomUUID()
+                    : String(Date.now() + Math.random()),
+                date: isoDate,
+                description: opis,
+                amount,
+                type,
+                currency,
+              };
+            });
+          } else {
+            const parsed = JSON.parse(text);
+            if (!Array.isArray(parsed)) throw new Error("Not array");
+            cleaned = parsed
+              .map((t) => ({
+                id:
+                  t.id ||
+                  (crypto.randomUUID
+                    ? crypto.randomUUID()
+                    : String(Date.now() + Math.random())),
+                date: t.date,
+                description: t.description,
+                amount: Number(t.amount),
+                type: t.type === "expense" ? "expense" : "income",
+                currency:
+                  t.currency && CURRENCY_SETTINGS[t.currency]
+                    ? t.currency
+                    : "RSD",
+              }));
+          }
+
+          cleaned = cleaned.filter(
+            (t) =>
+              t.date &&
+              t.description &&
+              Number.isFinite(t.amount) &&
+              (t.type === "income" || t.type === "expense")
+          );
 
           if (!cleaned.length) {
             alert("Nema važećih unosa u fajlu.");
@@ -591,6 +675,119 @@ document.addEventListener("DOMContentLoaded", () => {
       };
       reader.readAsText(file);
     });
+  }
+
+  function exportSummary(scope) {
+    if (!transactions.length) {
+      alert("Nema podataka za izvoz.");
+      return;
+    }
+
+    const today = new Date();
+    let refDay = today;
+    let refMonth = today;
+    let refYear = today;
+
+    if (dayDaySel && dayMonthSel && dayYearSel && dayDaySel.value && dayMonthSel.value && dayYearSel.value) {
+      const d = Number(dayDaySel.value);
+      const m = Number(dayMonthSel.value);
+      const y = Number(dayYearSel.value);
+      if (Number.isFinite(d) && Number.isFinite(m) && Number.isFinite(y)) {
+        refDay = new Date(y, m - 1, d);
+      }
+    }
+
+    if (monthMonthSel && monthYearSel && monthMonthSel.value && monthYearSel.value) {
+      const m = Number(monthMonthSel.value);
+      const y = Number(monthYearSel.value);
+      if (Number.isFinite(m) && Number.isFinite(y)) {
+        refMonth = new Date(y, m - 1, 1);
+      }
+    }
+
+    if (yearSel && yearSel.value) {
+      const y = Number(yearSel.value);
+      if (Number.isFinite(y)) {
+        refYear = new Date(y, 0, 1);
+      }
+    }
+
+    let filtered = [];
+    if (scope === "day") {
+      filtered = transactions.filter((t) => sameDay(new Date(t.date), refDay));
+    } else if (scope === "month") {
+      filtered = transactions.filter((t) => sameMonth(new Date(t.date), refMonth));
+    } else if (scope === "year") {
+      filtered = transactions.filter((t) => sameYear(new Date(t.date), refYear));
+    }
+
+    if (!filtered.length) {
+      alert("Nema unosa za izabrani period.");
+      return;
+    }
+
+    // priprema CSV sadržaja za Excel
+    const header = [
+      "Datum",
+      "Opis",
+      "Tip",
+      "Iznos",
+      "Valuta",
+    ];
+
+    const rows = filtered.map((t) => {
+      const d = new Date(t.date).toLocaleDateString("sr-RS");
+      const desc = (t.description || "").replace(/"/g, '""');
+      const type = t.type === "income" ? "Prihod" : "Rashod";
+      const amount = String(t.amount ?? "");
+      const currency = t.currency && CURRENCY_SETTINGS[t.currency] ? t.currency : "RSD";
+      return [
+        d,
+        desc,
+        type,
+        amount,
+        currency,
+      ];
+    });
+
+    const csvLines = [
+      header.join(";"),
+      ...rows.map((cols) =>
+        cols
+          .map((c) => `"${String(c)}"`)
+          .join(";")
+      ),
+    ];
+
+    const blob = new Blob([csvLines.join("\r\n")], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+
+    if (scope === "day") {
+      a.download = "licne-finansije-saldo-dan.csv";
+    } else if (scope === "month") {
+      a.download = "licne-finansije-saldo-mesec.csv";
+    } else {
+      a.download = "licne-finansije-saldo-godina.csv";
+    }
+
+    a.href = url;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  if (dailyExportBtn) {
+    dailyExportBtn.addEventListener("click", () => exportSummary("day"));
+  }
+  if (monthlyExportBtn) {
+    monthlyExportBtn.addEventListener("click", () => exportSummary("month"));
+  }
+  if (yearlyExportBtn) {
+    yearlyExportBtn.addEventListener("click", () => exportSummary("year"));
   }
 
   form.addEventListener("submit", (e) => {
