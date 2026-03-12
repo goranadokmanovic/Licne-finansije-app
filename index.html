@@ -2,23 +2,40 @@
 <html lang="sr">
 <head>
   <meta charset="UTF-8">
-  <title>Lične finansije - Tracker</title>
+  <title>Lične finansije Gorana - Tracker</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="app">
     <header class="app-header">
-      <h1>Lične finansije</h1>
+      <h1>LIČNE FINANSIJE - Gorana Dokmanović</h1>
       <p>Praćenje prihoda i rashoda na dnevnom, mesečnom i godišnjem nivou</p>
     </header>
 
     <section class="card">
-      <h2>Novi unos</h2>
+      <div class="card-header-row">
+        <h2>Novi unos</h2>
+        <div class="toolbar inside-card">
+          <div class="currency-switcher">
+            <label for="currency">Valuta</label>
+            <select id="currency">
+              <option value="RSD">RSD</option>
+              <option value="EUR">EUR</option>
+              <option value="USD">USD</option>
+            </select>
+          </div>
+        </div>
+      </div>
       <form id="transaction-form">
         <div class="form-row">
           <label for="date">Datum</label>
-          <input type="date" id="date" required>
+          <input type="hidden" id="date" required>
+          <div class="summary-filter-inline">
+            <select id="new-date-day"></select>
+            <select id="new-date-month"></select>
+            <select id="new-date-year"></select>
+          </div>
         </div>
         <div class="form-row">
           <label for="description">Opis</label>
@@ -42,48 +59,73 @@
     <section class="grid">
       <div class="card">
         <h2>Dnevni pregled</h2>
+        <div class="summary-filters">
+          <div class="summary-filter-row">
+            <label>Dan</label>
+            <div class="summary-filter-inline">
+              <select id="filter-day-day"></select>
+              <select id="filter-day-month"></select>
+              <select id="filter-day-year"></select>
+            </div>
+          </div>
+        </div>
         <div class="summary-row">
-          <span>Prihodi danas:</span>
+          <span>Prihodi za dan:</span>
           <span id="daily-income">0</span>
         </div>
         <div class="summary-row">
-          <span>Rashodi danas:</span>
+          <span>Rashodi za dan:</span>
           <span id="daily-expense">0</span>
         </div>
         <div class="summary-row total">
-          <span>Saldo danas:</span>
+          <span id="daily-label">Saldo za dan:</span>
           <span id="daily-balance">0</span>
         </div>
       </div>
 
       <div class="card">
         <h2>Mesečni pregled</h2>
+        <div class="summary-filters">
+          <div class="summary-filter-row">
+            <label>Mesec</label>
+            <div class="summary-filter-inline">
+              <select id="filter-month-month"></select>
+              <select id="filter-month-year"></select>
+            </div>
+          </div>
+        </div>
         <div class="summary-row">
-          <span>Prihodi ovaj mesec:</span>
+          <span>Prihodi za mesec:</span>
           <span id="monthly-income">0</span>
         </div>
         <div class="summary-row">
-          <span>Rashodi ovaj mesec:</span>
+          <span>Rashodi za mesec:</span>
           <span id="monthly-expense">0</span>
         </div>
         <div class="summary-row total">
-          <span>Saldo ovaj mesec:</span>
+          <span id="monthly-label">Saldo za mesec:</span>
           <span id="monthly-balance">0</span>
         </div>
       </div>
 
       <div class="card">
         <h2>Godišnji pregled</h2>
+        <div class="summary-filters">
+          <div class="summary-filter-row">
+            <label for="filter-year">Godina</label>
+            <select id="filter-year"></select>
+          </div>
+        </div>
         <div class="summary-row">
-          <span>Prihodi ove godine:</span>
+          <span>Prihodi za godinu:</span>
           <span id="yearly-income">0</span>
         </div>
         <div class="summary-row">
-          <span>Rashodi ove godine:</span>
+          <span>Rashodi za godinu:</span>
           <span id="yearly-expense">0</span>
         </div>
         <div class="summary-row total">
-          <span>Saldo ove godine:</span>
+          <span id="yearly-label">Saldo za godinu:</span>
           <span id="yearly-balance">0</span>
         </div>
       </div>
@@ -94,6 +136,31 @@
         <h2>Svi unosi</h2>
         <button id="clear-all" class="btn-danger">Obriši sve</button>
       </div>
+
+      <div class="transactions-controls">
+        <div class="transactions-filters">
+          <select id="filter-type">
+            <option value="all">Svi tipovi</option>
+            <option value="income">Samo prihodi</option>
+            <option value="expense">Samo rashodi</option>
+          </select>
+          <select id="filter-currency">
+            <option value="all">Sve valute</option>
+            <option value="RSD">RSD</option>
+            <option value="EUR">EUR</option>
+            <option value="USD">USD</option>
+          </select>
+          <input type="text" id="filter-search" placeholder="Pretraga po opisu">
+        </div>
+        <div class="transactions-actions">
+          <button id="export-json" class="btn-secondary">Izvezi</button>
+          <label for="import-json" class="btn-secondary file-button">
+            Uvezi
+            <input type="file" id="import-json" accept="application/json">
+          </label>
+        </div>
+      </div>
+
       <table class="transactions-table">
         <thead>
           <tr>
